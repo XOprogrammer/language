@@ -77,7 +77,8 @@ class FilesUtil:
         __content_view = ("files_path(list|str): 文件路径\n\t\t"
                           "file_encode(list|str): 读解码")
         __open_files_dirs = 'files_path(list|str): 文件(或目录)路径'
-        __query_files = 'files_path(list|str): 文件(或目录)路径'
+        __query_files = ('files_path(list|str): 文件(或目录)路径\n\t\t'
+                         'all_files(bool): 是否查询包括子目录内的所有文件(默认否)')
         def h_prompt(string):
             return f'\033[34m{string}\033[0m'
         help_text = {
@@ -296,7 +297,8 @@ class FilesUtil:
             if path.isabs(dir) and path.isabs(file):
                 try:
                     self.create_dir(dir)
-                    move(dir, file)
+                    f_nt = search(self.__files_path_re, file)
+                    move(file, f'{dir}/{f_nt.group(2)}{f_nt.group(3)}')
                     self.__success(f'成功将文件“{file}”迁移到目录“{dir}”')
                 except OSError:
                     self.__err(f'文件(或目录)“{file}”不存在！', 'copy_file[Error]: ')
@@ -308,10 +310,10 @@ class FilesUtil:
         __directory_path_type = type(directory_path)
 
         if __files_path_type == str and __directory_path_type == str:
-            migration(files_path, directory_path)
+            migration(directory_path, files_path)
         elif __files_path_type == list and __directory_path_type == list:
             for i in files_path:
-                migration(i, directory_path[files_path.index(i)])
+                migration(directory_path[files_path.index(i)], i)
         else:
             self.__err('请统一使用列表类型或字符串类型填入参数', 'migration_file[Error]: ')
 
@@ -387,8 +389,6 @@ class FilesUtil:
                     self.__success(f'目录“{sub(r'([/\\])$', '', d_name)}”创建成功！')
                 except OSError:
                     self.__err(f'目录名不合法(【非法字符如→】“{ff_string}”)！“{d_name}”创建失败')
-            elif d_name != '' and path.exists(d_name):
-                self.__prompt(f'目录“{d_name}”已存在！(已取消创建“{d_name}”)')
             else:
                 self.__err(f'目录名不能为空！')
         if __dir_name_type == str:
@@ -539,21 +539,53 @@ class FilesUtil:
             self.__err(f'文件路径不能为空！', 'open_files[Error]: ')
 
     # 查找指定目录下的所有文件
-    def query_files(self, files_path: list | str) -> dict:
+    def query_files(self, files_path: list | str, all_files: bool = False, lr: bool = False) -> dict:
         new_arr = list()
+        def usort(arr, idx = None):
+            num = 0
+            if lr is False:
+                num = -1
+            news_arr = [0] * (1000 * 1000)
+            news_arr2 = []
+            if idx is None:
+                idx = arr
+            for arrI in idx:
+                query = findall(r'\d+', arrI)
+                news_arr[int(query[num]) - 1] = arr[idx.index(arrI)]
+            for arrI in news_arr:
+                if arrI != 0:
+                    news_arr2.append(arrI)
+            return news_arr2
+
         def create_file_arr(f_path):
             dir_file_arr = dict()
-            path_arr = list()
-            file_arr = list()
-            file_path_arr = list()
-            for file_path, nan_arr, files_arr in walk(f_path):
-                for file_o in files_arr:
-                    path_arr.append(files_path)
-                    file_arr.append(file_o)
-                    file_path_arr.append(f'{files_path}/{file_o}')
-            dir_file_arr['path'] = path_arr
-            dir_file_arr['file'] = file_arr
-            dir_file_arr['file_path'] = file_path_arr
+            path_all_arr = list()
+            file_all_arr = list()
+            file_path_all_arr = list()
+            if all_files:
+                for file_path, nan_arr, files_arr in walk(f_path):
+                    path_arr = list()
+                    file_arr = list()
+                    file_path_arr = list()
+                    for file_o in files_arr:
+                        path_arr.append(file_path)
+                        file_arr.append(file_o)
+                        file_path_arr.append(f'{file_path}/{file_o}')
+                    if path_arr:
+                        path_all_arr.append(path_arr)
+                        file_all_arr.append(usort(file_arr))
+                        file_path_all_arr.append(usort(file_path_arr))
+            else:
+                path_all_arr = next(walk(f_path))[0]
+                file_all_arr = next(walk(f_path))[2]
+                for file_name in next(walk(f_path))[2]:
+                    file_path_all_arr.append(f'{next(walk(f_path))[0]}/{file_name}')
+                file_path_all_arr = usort(file_path_all_arr, file_all_arr)
+                file_all_arr = usort(file_all_arr)
+            # file_all_arr.sort(key=lambda x: findall(r'\d+', x)[-1])
+            dir_file_arr['path'] = path_all_arr
+            dir_file_arr['file'] = file_all_arr
+            dir_file_arr['file_path'] = file_path_all_arr
             return dir_file_arr
         __files_path_type = type(files_path)
         if __files_path_type == str:
