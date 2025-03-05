@@ -1,8 +1,6 @@
 from os import system, remove, path, makedirs, walk, removedirs, rename
 from shutil import move, rmtree
 from re import *
-from xml.sax.handler import feature_namespaces
-
 
 class FilesUtil:
     # 报错
@@ -53,10 +51,13 @@ class FilesUtil:
         return vs
 
     # 帮助文档
-    def help(self) -> dict:
+    def help(self, get_text:str = None) -> dict:
         __merge_files = ('files_list(list): 文件路径\n\t\t'
                          'files_encode(str): 文件编解码\n\t\t'
-                         'save_file(str): 文件保存路径\n\t\t'
+                         'save_file(str): 文件保存路径(默认：当前执行路径/merge_files.文件后缀)\n\t\t'
+                         'del_source_file(bool): 是否删除源文件(默认否)')
+        __merge_files_b = ('files_list(list): 文件路径\n\t\t'
+                         'save_file(str): 文件保存路径(默认：当前执行路径/merge_files.文件后缀)\n\t\t'
                          'del_source_file(bool): 是否删除源文件(默认否)')
         __split_file = ('files_list(list|str): 文件路径\n\t\t'
                         'segmentation(list|str): 分割标志\n\t\t'
@@ -74,11 +75,16 @@ class FilesUtil:
                           'name_lr(list|str): 文件名前后缀')
         __del_files_dir = ('f_d_path(list|str): 文件(或目录)路径\n\t\t'
                            'force_del_dir(bool): 是否强制删除目录(默认否)')
-        __content_view = ("files_path(list|str): 文件路径\n\t\t"
+        __content_view = ("files_path(list|str): 文件路径"
                           "file_encode(list|str): 读解码")
+        __usort = ("arr(list): 需要排序的数组\n\t\t"
+                   "idx(list): 排序数组时的参考数组\n\t\t"
+                   "lr(bool): 升降序（默认：降序False）")
         __open_files_dirs = 'files_path(list|str): 文件(或目录)路径'
         __query_files = ('files_path(list|str): 文件(或目录)路径\n\t\t'
-                         'all_files(bool): 是否查询包括子目录内的所有文件(默认否)')
+                         'all_files(bool): 是否查询包括子目录内的所有文件(默认否)\n\t\t'
+                         'lr(bool): 正反排序(默认正序：false)')
+
         def h_prompt(string):
             return f'\033[34m{string}\033[0m'
         help_text = {
@@ -91,6 +97,12 @@ class FilesUtil:
                 'title': 'merge_files',
                 'message': h_prompt('合并文件'),
                 'join': __merge_files,
+                'must': False
+            },
+            'merge_files_b': {
+                'title': 'merge_files_b',
+                'message': h_prompt('合并文件(二进制版)'),
+                'join': __merge_files_b,
                 'must': False
             },
             'split_file': {
@@ -135,6 +147,12 @@ class FilesUtil:
                 'join': __content_view,
                 'must': False
             },
+            'usort': {
+                'title': 'usort',
+                'message': h_prompt('数组排序'),
+                'join': __usort,
+                'must': False
+            },
             'open_files_dirs': {
                 'title': 'open_files_dirs',
                 'message': h_prompt('打开文件或目录'),
@@ -148,6 +166,8 @@ class FilesUtil:
                 'must': False
             }
         }
+        if get_text is not None:
+            return help_text[get_text]
         for ht in help_text:
             self.__success(ht, '', end='\t\t\n')
             for ht2 in help_text[ht]:
@@ -181,6 +201,27 @@ class FilesUtil:
             with open(save_file, 'w', encoding=files_encode) as w_merge:
                 w_merge.write(readlines)
                 self.__success(f'文件合并成功！（共合并 {len(files_list)} 个文件）', 'merge_files[success]: ')
+        else:
+            self.__err(f'请以列表类型传入文件路径至少两个及以上！', 'merge_files[success]: ')
+
+    # 文件合并：二进制版(一维合并未进阶二维合并)
+    def merge_files_b(self, files_list: list = None, save_file: str = 'merge_files',del_source_file: bool = False):
+        __files_list_type = type(files_list)
+        if __files_list_type == list and files_list is not None and len(files_list) >= 2:
+            if search(self.__files_path_re, save_file) is None:
+                save_file += f"{search(self.__files_path_re, files_list[-1]).group(3)}"
+            for i in files_list:
+                try:
+                    with open(i, 'rb') as r_merge:
+                        readall = r_merge.read()
+                        with open(save_file, 'ab') as w_merge:
+                            w_merge.write(readall)
+                    if del_source_file:
+                        remove(i)
+                except FileNotFoundError:
+                    self.__err(f'文件“{i}”不存在！', 'merge_files[Error]: ')
+                    return
+            self.__success(f'文件合并成功！（共合并 {len(files_list)} 个文件）', 'merge_files[success]: ')
         else:
             self.__err(f'请以列表类型传入文件路径至少两个及以上！', 'merge_files[success]: ')
 
@@ -296,6 +337,7 @@ class FilesUtil:
         def migration(dir, file):
             if path.isabs(dir) and path.isabs(file):
                 try:
+                    self.__call_create_dir = False
                     self.create_dir(dir)
                     f_nt = search(self.__files_path_re, file)
                     move(file, f'{dir}/{f_nt.group(2)}{f_nt.group(3)}')
@@ -311,9 +353,11 @@ class FilesUtil:
 
         if __files_path_type == str and __directory_path_type == str:
             migration(directory_path, files_path)
+            self.__call_create_dir = True
         elif __files_path_type == list and __directory_path_type == list:
             for i in files_path:
                 migration(directory_path[files_path.index(i)], i)
+            self.__call_create_dir = True
         else:
             self.__err('请统一使用列表类型或字符串类型填入参数', 'migration_file[Error]: ')
 
@@ -383,14 +427,15 @@ class FilesUtil:
         __dir_name_type = type(dir_name)
         def create_dir_pd(d_name):
             ff_string = '\\ / : * ? " < > |'
+            d_name = d_name.strip()
             if d_name != '' and not path.exists(d_name):
                 try:
                     makedirs(d_name)
                     self.__success(f'目录“{sub(r'([/\\])$', '', d_name)}”创建成功！')
                 except OSError:
                     self.__err(f'目录名不合法(【非法字符如→】“{ff_string}”)！“{d_name}”创建失败')
-            else:
-                self.__err(f'目录名不能为空！')
+            elif self.__call_create_dir:
+                self.__err(f'目录名不能为空！', 'create_dir[Error]: ')
         if __dir_name_type == str:
             create_dir_pd(dir_name)
         elif __dir_name_type == list:
@@ -439,9 +484,15 @@ class FilesUtil:
 
         if __old_files_list_type == str and __new_files_list_type == str:
             if f_rename(old_files_list, new_files_list):
-                self.__success(f'文件重命名完成！')
+                file_type = search(self.__files_path_re, old_files_list).group(3)
+                new_f_name = ''
+                if __name_lr_type == str:
+                    new_f_name = f'{name_lr}{new_files_list}{name_lr}'
+                elif __name_lr_type == list:
+                    new_f_name = f'{name_lr[0]}{new_files_list}{name_lr[1]}'
+                self.__success(f'文件重命名完成！({old_files_list} to {new_f_name}{file_type})', 'rename_files[Success]: ')
             else:
-                self.__err('文件重命名失败！', 'rename_files[Error]: ')
+                self.__err(f'文件重命名失败！(at {old_files_list})', 'rename_files[Error]: ')
         elif __old_files_list_type == list and __new_files_list_type == list:
             count = 0
             try:
@@ -538,24 +589,32 @@ class FilesUtil:
         else:
             self.__err(f'文件路径不能为空！', 'open_files[Error]: ')
 
-    # 查找指定目录下的所有文件
-    def query_files(self, files_path: list | str, all_files: bool = False, lr: bool = False) -> dict:
-        new_arr = list()
-        def usort(arr, idx = None):
-            num = 0
-            if lr is False:
-                num = -1
-            news_arr = [0] * (1000 * 1000)
-            news_arr2 = []
+    # 数组排序
+    def usort(self, arr: list, idx: list = None, lr: bool = False):
+        news_arr2 = []
+        try:
             if idx is None:
                 idx = arr
+            news_arr = [0] * (len(arr) + 10)
+
+            num = -1
             for arrI in idx:
                 query = findall(r'\d+', arrI)
                 news_arr[int(query[num]) - 1] = arr[idx.index(arrI)]
+
             for arrI in news_arr:
                 if arrI != 0:
                     news_arr2.append(arrI)
+            if lr is True:
+                news_arr2.reverse()
             return news_arr2
+        except IndexError:
+            self.__warn("列表索引超出范围！排序失败", "query_files[Warning]: ")
+            return False
+
+    # 查找指定目录下的所有文件
+    def query_files(self, files_path: list | str, all_files: bool = False, lr: bool = False) -> dict:
+        new_arr = list()
 
         def create_file_arr(f_path):
             dir_file_arr = dict()
@@ -571,18 +630,21 @@ class FilesUtil:
                         path_arr.append(file_path)
                         file_arr.append(file_o)
                         file_path_arr.append(f'{file_path}/{file_o}')
-                    if path_arr:
+                    if path_arr and self.usort(file_arr, lr=lr):
                         path_all_arr.append(path_arr)
-                        file_all_arr.append(usort(file_arr))
-                        file_path_all_arr.append(usort(file_path_arr))
+                        file_all_arr.append(self.usort(file_arr, lr=lr))
+                        file_path_all_arr.append(self.usort(file_path_arr, lr=lr))
+                    else:
+                        file_all_arr.append(file_arr)
+                        file_path_all_arr.append(file_path_arr)
             else:
                 path_all_arr = next(walk(f_path))[0]
                 file_all_arr = next(walk(f_path))[2]
                 for file_name in next(walk(f_path))[2]:
                     file_path_all_arr.append(f'{next(walk(f_path))[0]}/{file_name}')
-                file_path_all_arr = usort(file_path_all_arr, file_all_arr)
-                file_all_arr = usort(file_all_arr)
-            # file_all_arr.sort(key=lambda x: findall(r'\d+', x)[-1])
+                if self.usort(file_all_arr, lr=lr):
+                    file_path_all_arr = self.usort(file_path_all_arr, file_all_arr, lr)
+                    file_all_arr = self.usort(file_all_arr, lr=lr)
             dir_file_arr['path'] = path_all_arr
             dir_file_arr['file'] = file_all_arr
             dir_file_arr['file_path'] = file_path_all_arr
@@ -598,4 +660,42 @@ class FilesUtil:
         return new_arr
 
     def __init__(self):
+        self.__call_create_dir = True
         self.__files_path_re = r'(.*?)([^/|^\\]+)(\.[^/|^\\]+$)'
+
+
+# if __name__ == "__main__":
+#     file_util = FilesUtil()
+#     while True:
+#         flag = False
+#         instruct = input("请输入指令：").lower()
+#         merge_files = search(rf'merge_files\s+', instruct)
+#         split_files = search(rf'split_files\s+', instruct)
+#         if instruct == "help":
+#             file_util.help()
+#             continue
+#         elif instruct == 'version' or instruct == '-v':
+#             file_util.version()
+#             continue
+#         elif merge_files is not None:
+#             groupList = merge_files.group().split()
+#             try:
+#                 try:
+#                     flag = bool(groupList[3])
+#                 except:
+#                     flag = False
+#                 file_util.merge_files(list(groupList[0]), groupList[1], groupList[2], flag)
+#             except:
+#                 print(f'merge_files 指令使用错误！\n{file_util.help('merge_files')}')
+#             continue
+#         elif split_files is not None:
+#             groupList = split_files.group().split()
+#             try:
+#                 try:
+#                     flag = bool(groupList[4])
+#                 except:
+#                     flag = False
+#                 file_util.split_files(list(groupList[0]), list(groupList[1]), list(groupList[2]), list(groupList[3]), flag)
+#             except:
+#                 print(f'split_files 指令使用错误！\n{file_util.help('split_files')}')
+#             continue

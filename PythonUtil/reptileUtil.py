@@ -11,6 +11,15 @@ except Exception:
     os.system("pip uninstall bs4")
     os.system("pip install bs4")
 
+__head = {
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"
+}
+
+def get_header():
+    return __head
+
+def set_header(key: str, value):
+    __head[key] = value
 
 def dirClear(dirPath: str):
     """
