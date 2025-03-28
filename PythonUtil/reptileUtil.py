@@ -21,7 +21,7 @@ def get_header():
 def set_header(key: str, value):
     __head[key] = value
 
-def dirClear(dirPath: str):
+def createDir(dirPath: str):
     """
     如果文件夹不存在就创建，如果文件存在就清空！
     :param dirPath: 文件夹名
