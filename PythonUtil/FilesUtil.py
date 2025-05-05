@@ -1,6 +1,29 @@
 from os import system, remove, path, makedirs, walk, removedirs, rename
 from shutil import move, rmtree
+from pathlib import Path
 from re import *
+
+__all__ = ['FilesUtil', 'version']
+
+# 版本号
+def version() -> str:
+    vs = 'v1.0.0'
+    prompt = '''
+主版本号（x）：
+    • 主版本号用于表示产品的主要版本或重大更新。
+    • 当主版本号增加时，通常意味着产品发生了重大变化或引入了不兼容的更新。
+    • 例如，从1.0.0到2.0.0的升级可能表示产品经历了重大重构或引入了全新的功能集。
+次版本号（y）：
+    • 次版本号用于表示产品的次要更新或功能增强。
+    • 当次版本号增加时，通常意味着产品在保持向后兼容性的同时，增加了新的功能或改进了现有功能。
+    • 例如，从1.1.0到1.2.0的升级可能表示产品增加了新的功能或优化了用户体验。
+修订号（z）：
+    • 修订号用于表示产品的修复或微调。
+    • 当修订号增加时，通常意味着产品修复了已知的bug、改进了性能或进行了其他微小的调整。
+    • 例如，从1.1.1到1.1.2的升级可能表示产品修复了一个或多个影响用户体验的bug。
+'''
+    print(f'\033[34m{prompt}\nFilesUtil: {vs}\033[0m')
+    return vs
 
 class FilesUtil:
     # 报错
@@ -30,25 +53,6 @@ class FilesUtil:
                 create_item.append(create_item[-1])
         return [create_item[-1] if item == '' else item for item in create_item]
 
-    # 版本号
-    def version(self) -> str:
-        vs = 'v1.0.0'
-        self.__prompt('''
-主版本号（x）：
-    • 主版本号用于表示产品的主要版本或重大更新。
-    • 当主版本号增加时，通常意味着产品发生了重大变化或引入了不兼容的更新。
-    • 例如，从1.0.0到2.0.0的升级可能表示产品经历了重大重构或引入了全新的功能集。
-次版本号（y）：
-    • 次版本号用于表示产品的次要更新或功能增强。
-    • 当次版本号增加时，通常意味着产品在保持向后兼容性的同时，增加了新的功能或改进了现有功能。
-    • 例如，从1.1.0到1.2.0的升级可能表示产品增加了新的功能或优化了用户体验。
-修订号（z）：
-    • 修订号用于表示产品的修复或微调。
-    • 当修订号增加时，通常意味着产品修复了已知的bug、改进了性能或进行了其他微小的调整。
-    • 例如，从1.1.1到1.1.2的升级可能表示产品修复了一个或多个影响用户体验的bug。
-''', '')
-        self.__prompt(vs, 'FilesUtil: ')
-        return vs
 
     # 帮助文档
     def help(self, get_text:str = None) -> dict:
@@ -84,6 +88,7 @@ class FilesUtil:
         __query_files = ('files_path(list|str): 文件(或目录)路径\n\t\t'
                          'all_files(bool): 是否查询包括子目录内的所有文件(默认否)\n\t\t'
                          'lr(bool): 正反排序(默认正序：false)')
+        __query_files_p = 'directory(str): 目录路径'
 
         def h_prompt(string):
             return f'\033[34m{string}\033[0m'
@@ -163,6 +168,12 @@ class FilesUtil:
                 'title': 'query_files',
                 'message': h_prompt('查询指定目录下的所有文件'),
                 'join': __query_files,
+                'must': False
+            },
+            'query_files_p': {
+                'title': 'query_files_p',
+                'message': h_prompt('查询指定目录下的所有文件'),
+                'join': __query_files_p,
                 'must': False
             }
         }
@@ -659,43 +670,15 @@ class FilesUtil:
             self.__err('路径填入类型应为列表类型或字符串类型，且需是绝对路径！', 'dir_files_all[Error]: ')
         return new_arr
 
+    @staticmethod
+    def query_files_p(directory: str):
+        arr = []
+        dir_path = Path(directory)
+        for file_path in dir_path.rglob('*'):
+            if file_path.is_file():
+                arr.append(str(file_path))
+        return arr
+
     def __init__(self):
         self.__call_create_dir = True
         self.__files_path_re = r'(.*?)([^/|^\\]+)(\.[^/|^\\]+$)'
-
-
-# if __name__ == "__main__":
-#     file_util = FilesUtil()
-#     while True:
-#         flag = False
-#         instruct = input("请输入指令：").lower()
-#         merge_files = search(rf'merge_files\s+', instruct)
-#         split_files = search(rf'split_files\s+', instruct)
-#         if instruct == "help":
-#             file_util.help()
-#             continue
-#         elif instruct == 'version' or instruct == '-v':
-#             file_util.version()
-#             continue
-#         elif merge_files is not None:
-#             groupList = merge_files.group().split()
-#             try:
-#                 try:
-#                     flag = bool(groupList[3])
-#                 except:
-#                     flag = False
-#                 file_util.merge_files(list(groupList[0]), groupList[1], groupList[2], flag)
-#             except:
-#                 print(f'merge_files 指令使用错误！\n{file_util.help('merge_files')}')
-#             continue
-#         elif split_files is not None:
-#             groupList = split_files.group().split()
-#             try:
-#                 try:
-#                     flag = bool(groupList[4])
-#                 except:
-#                     flag = False
-#                 file_util.split_files(list(groupList[0]), list(groupList[1]), list(groupList[2]), list(groupList[3]), flag)
-#             except:
-#                 print(f'split_files 指令使用错误！\n{file_util.help('split_files')}')
-#             continue
