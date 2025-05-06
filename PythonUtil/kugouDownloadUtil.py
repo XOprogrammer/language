@@ -1,6 +1,6 @@
 from os import remove, path
 from re import search
-from utils.SeleniumTest import *
+from utils.AutoSpider import *
 from time import sleep
 from urllib.parse import quote
 

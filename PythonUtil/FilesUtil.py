@@ -3,11 +3,12 @@ from shutil import move, rmtree
 from pathlib import Path
 from re import *
 
+__version__ = '1.0.0'
+__author__ = 'yzmd <a2541507030@163.com>'
 __all__ = ['FilesUtil', 'version']
 
 # 版本号
 def version() -> str:
-    vs = 'v1.0.0'
     prompt = '''
 主版本号（x）：
     • 主版本号用于表示产品的主要版本或重大更新。
@@ -22,8 +23,8 @@ def version() -> str:
     • 当修订号增加时，通常意味着产品修复了已知的bug、改进了性能或进行了其他微小的调整。
     • 例如，从1.1.1到1.1.2的升级可能表示产品修复了一个或多个影响用户体验的bug。
 '''
-    print(f'\033[34m{prompt}\nFilesUtil: {vs}\033[0m')
-    return vs
+    print(f'\033[34m{prompt}\nFilesUtil: v{__version__}\033[0m')
+    return __version__
 
 class FilesUtil:
     # 报错
