@@ -1,10 +1,20 @@
-from os import system, remove, path, makedirs, walk, removedirs, rename
-from shutil import move, rmtree
-from pathlib import Path
-from re import *
+from os import (system as _sys, 
+                remove as _remove, 
+                path as _path, 
+                makedirs as _makedirs, 
+                walk as _walk, 
+                removedirs as _removedirs, 
+                rename as _rename)
+from shutil import move as _move, rmtree as _rmtree
+from pathlib import Path as _Path
+from re import (search as _search, 
+                findall as _findall, 
+                sub as _sub, 
+                S as _S)
 
 __version__ = '1.0.0'
 __author__ = 'yzmd <a2541507030@163.com>'
+
 __all__ = ['FilesUtil', 'version']
 
 # 版本号
@@ -195,14 +205,14 @@ class FilesUtil:
         if __files_list_type == list and files_list is not None and len(files_list) >= 2:
             
             readlines = ''
-            if search(self.__files_path_re, save_file) is None:
-                save_file += f"{search(self.__files_path_re, files_list[-1]).group(3)}"
+            if _search(self.__files_path_re, save_file) is None:
+                save_file += f"{_search(self.__files_path_re, files_list[-1]).group(3)}"
             for i in files_list:
                 try:
                     with open(i, 'r', encoding=files_encode) as r_merge:
                         readlines += f'{r_merge.read()}\n'
                     if del_source_file:
-                        remove(i)
+                        _remove(i)
                 except UnicodeDecodeError:
                     self.__err(f'“{files_encode}”编解码器解码失败！请检查文件编码和所有文件编码是否一致！', 'merge_files[Error]: ')
                     return
@@ -220,8 +230,8 @@ class FilesUtil:
     def merge_files_b(self, files_list: list = None, save_file: str = 'merge_files',del_source_file: bool = False):
         __files_list_type = type(files_list)
         if __files_list_type == list and files_list is not None and len(files_list) >= 2:
-            if search(self.__files_path_re, save_file) is None:
-                save_file += f"{search(self.__files_path_re, files_list[-1]).group(3)}"
+            if _search(self.__files_path_re, save_file) is None:
+                save_file += f"{_search(self.__files_path_re, files_list[-1]).group(3)}"
             for i in files_list:
                 try:
                     with open(i, 'rb') as r_merge:
@@ -229,7 +239,7 @@ class FilesUtil:
                         with open(save_file, 'ab') as w_merge:
                             w_merge.write(readall)
                     if del_source_file:
-                        remove(i)
+                        _remove(i)
                 except FileNotFoundError:
                     self.__err(f'文件“{i}”不存在！', 'merge_files[Error]: ')
                     return
@@ -250,8 +260,8 @@ class FilesUtil:
                     .replace('\\+', '+')
                     .replace('\\.', '.'))
         def legitimate_name_pd(string) -> bool:
-            pd1 = search(r'^[a-zA-Z]:.*', string)
-            pd2 = search(r'[:*?"<>|]', string)
+            pd1 = _search(r'^[a-zA-Z]:.*', string)
+            pd2 = _search(r'[:*?"<>|]', string)
             if pd1 and string.count(':') >= 2:
                 self.__err(f'文件(或目录)名不合法！(来自文件“{string}”)', 'split_file[Error]: ')
                 return False
@@ -267,9 +277,9 @@ class FilesUtil:
 
         def single_split_file(file_path, file_encode, split_this, save_file_path) -> bool:
             
-            if search(r'\..*$', save_file_path) is None:
+            if _search(r'\..*$', save_file_path) is None:
                 save_file_path += '.txt'
-            elif search(r'\.$', save_file_path) is not None:
+            elif _search(r'\.$', save_file_path) is not None:
                 save_file_path += 'txt'
             try:
                 with open(file_path, 'r', encoding=file_encode) as r_split:
@@ -278,17 +288,17 @@ class FilesUtil:
                     except UnicodeDecodeError:
                         self.__err(f'“{files_encode}”编解码器无法解码！', 'split_file[Error]: ')
                         return False
-                    text_list = findall(rf'(.*?)({split_this}\\n)', str_rep_t(sub(r'[\n\r]+$', '', ''.join(readlines))),
-                                        S)
-                    file_last = search(rf'{split_this}\\n(.*?)({split_this}$)',
-                                       str_rep_t(sub(r'[\n\r]+$', '', ''.join(readlines))), S)
+                    text_list = _findall(rf'(.*?)({split_this}\\n)', str_rep_t(_sub(r'[\n\r]+$', '', ''.join(readlines))),
+                                        _S)
+                    file_last = _search(rf'{split_this}\\n(.*?)({split_this}$)',
+                                       str_rep_t(_sub(r'[\n\r]+$', '', ''.join(readlines))), _S)
                     text_list.append((file_last.group(1), file_last.group(2)))
                     if len(text_list) > 1:
-                        savefile = search(self.__files_path_re, save_file_path)
+                        savefile = _search(self.__files_path_re, save_file_path)
                         if savefile is not None:
                             if not legitimate_name_pd(savefile.group(1)):
                                 return False
-                            save_file_path = sub(rf'{savefile.group(3)}$', '', save_file_path)
+                            save_file_path = _sub(rf'{savefile.group(3)}$', '', save_file_path)
                             if not legitimate_name_pd(save_file_path):
                                 return False
                         else:
@@ -296,7 +306,7 @@ class FilesUtil:
                             return False
                         for cf in text_list:
                             with open(
-                                    f'{save_file_path}_{text_list.index(cf) + 1}{search(self.__files_path_re, file_path).group(3)}',
+                                    f'{save_file_path}_{text_list.index(cf) + 1}{_search(self.__files_path_re, file_path).group(3)}',
                                     'w', encoding=file_encode) as w_split:
                                 w_split.write(str_rep_f(f'{cf[0].lstrip('\\n')}{cf[1].rstrip('\\n')}'))
                         return True
@@ -307,7 +317,7 @@ class FilesUtil:
                         self.__err(f'文件“{file_path}”拆分失败！', 'split_file[Error]: ')
                         return False
             except FileNotFoundError as e:
-                fd = search('directory: \'(.*?)\'', str(e))
+                fd = _search('directory: \'(.*?)\'', str(e))
                 self.__err(fd.group(1), 'split_file[没有这样的文件或目录]: ')
                 return False
 
@@ -320,7 +330,7 @@ class FilesUtil:
                     if single_split_file(files_list, files_encode, segmentation, save_file_list):
                         self.__success(f'文件“{files_list}”拆分成功！', 'split_file[success]: ')
                     if del_source_file:
-                        remove(files_list)
+                        _remove(files_list)
             elif __files_list_type == list:
                 self.__prompt('当前为多文件拆分...', 'split_file[Prompt]: ')
                 if __segmentation_type != list or __files_encode_type != list or __save_file_list_type != list:
@@ -334,7 +344,7 @@ class FilesUtil:
                             index = files_list.index(i)
                             single_split_file(i, files_encode[index], segmentation[index], save_file_list[index])
                             if del_source_file:
-                                remove(i)
+                                _remove(i)
                         self.__success(f'文件拆分成功！（共拆分 {len(files_list)} 个文件）', 'split_file[success]: ')
                     else:
                         self.__err(f'传入参数不足，拆分失败！（自动退出拆分）', 'split_file[Error]: ')
@@ -347,12 +357,12 @@ class FilesUtil:
     # 文件迁移
     def migration_files(self, files_path: list|str, directory_path: list|str):
         def migration(dir, file):
-            if path.isabs(dir) and path.isabs(file):
+            if _path.isabs(dir) and _path.isabs(file):
                 try:
                     self.__call_create_dir = False
                     self.create_dir(dir)
-                    f_nt = search(self.__files_path_re, file)
-                    move(file, f'{dir}/{f_nt.group(2)}{f_nt.group(3)}')
+                    f_nt = _search(self.__files_path_re, file)
+                    _move(file, f'{dir}/{f_nt.group(2)}{f_nt.group(3)}')
                     self.__success(f'成功将文件“{file}”迁移到目录“{dir}”')
                 except OSError:
                     self.__err(f'文件(或目录)“{file}”不存在！', 'copy_file[Error]: ')
@@ -377,8 +387,8 @@ class FilesUtil:
     def copy_files(self, files_path: list|str, files_encode: list|str = 'utf-8', rename: list|str = ''):
         def copy(f_path, f_encode, f_ren = '', f_id = 1):
             
-            f_ntp = search(self.__files_path_re, f_path)
-            f_re_ntp = search(self.__files_path_re, f_ren)
+            f_ntp = _search(self.__files_path_re, f_path)
+            f_re_ntp = _search(self.__files_path_re, f_ren)
             try:
                 with open(f_path, 'r', encoding=f_encode) as cpr:
                     copy_read = cpr.read()
@@ -410,7 +420,7 @@ class FilesUtil:
                 copy_path = f'{f_ntp.group(2)}_copy'
             with open(f'{f_re_ntp.group(1)}{copy_path}{f_ntp.group(3)}', 'w', encoding=f_encode) as cpw:
                 cpw.write(copy_read)
-            self.__success(f'成功复制文件“{f_path}”到“{sub(r'/$', '', f_re_ntp.group(1))}”！(文件名为: {copy_path}{f_re_ntp.group(3)})')
+            self.__success(f'成功复制文件“{f_path}”到“{_sub(r'/$', '', f_re_ntp.group(1))}”！(文件名为: {copy_path}{f_re_ntp.group(3)})')
         __files_path_type = type(files_path)
         __files_encode_type = type(files_encode)
         __rename_type = type(rename)
@@ -440,10 +450,10 @@ class FilesUtil:
         def create_dir_pd(d_name):
             ff_string = '\\ / : * ? " < > |'
             d_name = d_name.strip()
-            if d_name != '' and not path.exists(d_name):
+            if d_name != '' and not _path.exists(d_name):
                 try:
-                    makedirs(d_name)
-                    self.__success(f'目录“{sub(r'([/\\])$', '', d_name)}”创建成功！')
+                    _makedirs(d_name)
+                    self.__success(f'目录“{_sub(r'([/\\])$', '', d_name)}”创建成功！')
                 except OSError:
                     self.__err(f'目录名不合法(【非法字符如→】“{ff_string}”)！“{d_name}”创建失败')
             elif self.__call_create_dir:
@@ -454,7 +464,7 @@ class FilesUtil:
             for i in dir_name:
                 create_dir_pd(i)
         else:
-            self.__err(f'目录名填入应为列表类型或字符串类型，而非“{search(r'^<class \'(.*?)\'>$', str(__dir_name_type)).group(1)}”类型！')
+            self.__err(f'目录名填入应为列表类型或字符串类型，而非“{_search(r'^<class \'(.*?)\'>$', str(__dir_name_type)).group(1)}”类型！')
 
     # 文件重命名
     def rename_files(self, old_files_list: list|str = '', new_files_list: list|str = '', name_lr: list|str = ''):
@@ -469,11 +479,11 @@ class FilesUtil:
         def f_rename(old_name, new_name):
             def lr_pd(old, news, pd1, pd2):
                 if news == '':
-                    rename(old, pd1)
+                    _rename(old, pd1)
                 else:
-                    rename(old, pd2)
-            f_ntp = search(self.__files_path_re, old_name)
-            if path.exists(old_name):
+                    _rename(old, pd2)
+            f_ntp = _search(self.__files_path_re, old_name)
+            if _path.exists(old_name):
                 if name_lr != '':
                     if __name_lr_type == str:
                         lr_pd(old_name, new_name, f"{f_ntp.group(1)}/{name_lr}{f_ntp.group(2)}{name_lr}{f_ntp[3]}",
@@ -488,7 +498,7 @@ class FilesUtil:
                     else:
                         self.__err('文件名两边填入应为字符串或列表类型！', 'rename_files[Error]: ')
                 else:
-                    rename(old_name, f"{f_ntp.group(1)}/{new_name}{f_ntp[3]}")
+                    _rename(old_name, f"{f_ntp.group(1)}/{new_name}{f_ntp[3]}")
                 return f"{f_ntp.group(1)}/{new_name}{f_ntp[3]}"
             else:
                 self.__err(f'文件“{old_name}”不存在！', 'rename_files[Error]: ')
@@ -496,7 +506,7 @@ class FilesUtil:
 
         if __old_files_list_type == str and __new_files_list_type == str:
             if f_rename(old_files_list, new_files_list):
-                file_type = search(self.__files_path_re, old_files_list).group(3)
+                file_type = _search(self.__files_path_re, old_files_list).group(3)
                 new_f_name = ''
                 if __name_lr_type == str:
                     new_f_name = f'{name_lr}{new_files_list}{name_lr}'
@@ -531,10 +541,10 @@ class FilesUtil:
             force_del_dir = False
         def check_path(f_or_d):
             try:
-                if path.isdir(f_or_d):
-                    removedirs(f_or_d)
-                elif path.isfile(f_or_d):
-                    remove(f_or_d)
+                if _path.isdir(f_or_d):
+                    _removedirs(f_or_d)
+                elif _path.isfile(f_or_d):
+                    _remove(f_or_d)
                 else:
                     self.__err(f'文件(或目录)“{f_or_d}”不存在！', 'del_files_dir[Error]: ')
                     return
@@ -545,7 +555,7 @@ class FilesUtil:
                 return
             except OSError:
                 if force_del_dir:
-                    rmtree(f_or_d)
+                    _rmtree(f_or_d)
                     return
                 self.__err(f'目录“{f_or_d}”不是空的，不能删除！', 'del_files_dir[Error]: ')
         __f_d_path_type = type(f_d_path)
@@ -587,7 +597,7 @@ class FilesUtil:
     def open_files_dirs(self, files_path: list|str):
         def open_tf(f_path):
             f_path = f_path.replace('/', '\\')
-            if system(f'if exist "{f_path}" ( start {f_path} ) else ( false ) 2>NUL'):
+            if _sys(f'if exist "{f_path}" ( start {f_path} ) else ( false ) 2>NUL'):
                 self.__err(f'Windows 找不到文件(或目录)“{f_path}”。请确定文件(或目录)名是否正确后，再试一次。', 'System[Error]: ')
         if files_path:
             __files_path_type = type(files_path)
@@ -597,7 +607,7 @@ class FilesUtil:
                 for i in files_path:
                     open_tf(i)
             else:
-                self.__err(f'文件路径填入类型应为列表类型或字符串类型，而非“{search(r'^<class \'(.*?)\'>$', str(__files_path_type)).group(1)}”类型！', 'open_files[Error]: ')
+                self.__err(f'文件路径填入类型应为列表类型或字符串类型，而非“{_search(r'^<class \'(.*?)\'>$', str(__files_path_type)).group(1)}”类型！', 'open_files[Error]: ')
         else:
             self.__err(f'文件路径不能为空！', 'open_files[Error]: ')
 
@@ -611,7 +621,7 @@ class FilesUtil:
 
             num = -1
             for arrI in idx:
-                query = findall(r'\d+', arrI)
+                query = _findall(r'\d+', arrI)
                 news_arr[int(query[num]) - 1] = arr[idx.index(arrI)]
 
             for arrI in news_arr:
@@ -634,7 +644,7 @@ class FilesUtil:
             file_all_arr = list()
             file_path_all_arr = list()
             if all_files:
-                for file_path, nan_arr, files_arr in walk(f_path):
+                for file_path, nan_arr, files_arr in _walk(f_path):
                     path_arr = list()
                     file_arr = list()
                     file_path_arr = list()
@@ -650,10 +660,10 @@ class FilesUtil:
                         file_all_arr.append(file_arr)
                         file_path_all_arr.append(file_path_arr)
             else:
-                path_all_arr = next(walk(f_path))[0]
-                file_all_arr = next(walk(f_path))[2]
-                for file_name in next(walk(f_path))[2]:
-                    file_path_all_arr.append(f'{next(walk(f_path))[0]}/{file_name}')
+                path_all_arr = next(_walk(f_path))[0]
+                file_all_arr = next(_walk(f_path))[2]
+                for file_name in next(_walk(f_path))[2]:
+                    file_path_all_arr.append(f'{next(_walk(f_path))[0]}/{file_name}')
                 if self.usort(file_all_arr, lr=lr):
                     file_path_all_arr = self.usort(file_path_all_arr, file_all_arr, lr)
                     file_all_arr = self.usort(file_all_arr, lr=lr)
@@ -674,7 +684,7 @@ class FilesUtil:
     @staticmethod
     def query_files_p(directory: str):
         arr = []
-        dir_path = Path(directory)
+        dir_path = _Path(directory)
         for file_path in dir_path.rglob('*'):
             if file_path.is_file():
                 arr.append(str(file_path))

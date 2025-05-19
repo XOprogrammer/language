@@ -1,5 +1,7 @@
-from re import *
-from os import system
+from re import (search as _src, findall as _findall,
+                S as _S, DOTALL as _DOTALL, sub as _sub,
+                match as _match)
+from os import system as _system
 
 __all__ = ['FounderBookmaker', 'version']
 
@@ -171,12 +173,12 @@ class FounderBookmaker:
                     if app_path != '':
                         app_path = f'"" "{app_path}" '
                     try:
-                        system(f'start {app_path}{wfile_path}')
+                        _system(f'start {app_path}{wfile_path}')
                     except Exception as e:
                         self.__err(f'{e}(不影响写入)', '发生意外错误[Error]: ')
                 else:
                     try:
-                        system(f'start {search(r'(.*?)([^/\\]+)\.([a-zA-Z0-9]+)$', wfile_path).group(1)}')
+                        _system(f'start {_src(r'(.*?)([^/\\]+)\.([a-zA-Z0-9]+)$', wfile_path).group(1)}')
                     except Exception as e:
                         self.__err(f'{e}(不影响写入)', '发生意外错误[Error]: ')
             else:
@@ -184,8 +186,8 @@ class FounderBookmaker:
 
     # 标题两边
     def __title_lr(self, line, founder_bookmaker_cursor) -> bool:
-        dian_len = len(findall(self.__title_lr_rep, line))
-        if search(self.__title_lr_pattern, line) is not None and search(r'[\u4e00-\u9fff]', line) is not None and len(
+        dian_len = len(_findall(self.__title_lr_rep, line))
+        if _src(self.__title_lr_pattern, line) is not None and _src(r'[\u4e00-\u9fff]', line) is not None and len(
                 line) <= 25:
             if dian_len == 0:
                 founder_bookmaker_cursor.write(f'{self.__title_lr_top1}{line}\n')
@@ -216,7 +218,7 @@ class FounderBookmaker:
     def __chart_lr(self, line, founder_bookmaker_cursor) -> bool:
         if self.__chart_lr_accord:
             pattern = r'^(表|图)\s*([一二三四五六七八九十百千万亿零]+|[0-9]+|(?:I|V|X|L|C|D|M)(?:I|V|X|L|C|D|M)*)(.+)$'
-            if search(pattern, line) is not None:
+            if _src(pattern, line) is not None:
                 founder_bookmaker_cursor.write(f'{self.__chart_lr_start}{line}{self.__chart_lr_end}\n')
                 return True
             else:
@@ -224,10 +226,10 @@ class FounderBookmaker:
         else:
             Table = r'^表\s*([一二三四五六七八九十百千万亿零]+|[0-9]+|(?:I|V|X|L|C|D|M)(?:I|V|X|L|C|D|M)*)(.+)$'
             Image = r'^图\s*([一二三四五六七八九十百千万亿零]+|[0-9]+|(?:I|V|X|L|C|D|M)(?:I|V|X|L|C|D|M)*)(.+)$'
-            if search(Table, line) is not None:
+            if _src(Table, line) is not None:
                 founder_bookmaker_cursor.write(f'{self.__chart_lr_table_start}{line}{self.__chart_lr_table_end}\n')
                 return True
-            elif search(Image, line) is not None:
+            elif _src(Image, line) is not None:
                 founder_bookmaker_cursor.write(f'{self.__chart_lr_image_start}{line}{self.__chart_lr_image_end}\n')
                 return True
             else:
@@ -251,7 +253,7 @@ class FounderBookmaker:
 
     # 段落前后
     def __part_tb(self, line, founder_bookmaker_cursor) -> bool:
-        if line.strip() != '' and search(r'^', line) is None and match(r'^［\d+］', line) is None:
+        if line.strip() != '' and _src(r'^', line) is None and _match(r'^［\d+］', line) is None:
             founder_bookmaker_cursor.write(f'{self.__part_tb_start}{line}{self.__part_tb_end}\n')
             return True
         else:
@@ -266,8 +268,8 @@ class FounderBookmaker:
     def __image_content(self, line, founder_bookmaker_cursor) -> bool:
         __image_path_type = type(self.__image_path)
         if __image_path_type == str:
-            if search(r'(〖XC)(.*?)(〗)', line) is not None:
-                image_xc = search(r'(.*?)(〖XC).*?〗(.*)', line)
+            if _src(r'(〖XC)(.*?)(〗)', line) is not None:
+                image_xc = _src(r'(.*?)(〖XC).*?〗(.*)', line)
                 founder_bookmaker_cursor.write(
                     f'{image_xc.group(1)}{image_xc.group(2)}<{self.__image_path}>;{self.__image_type}〗{image_xc.group(3)}\n')
                 self.__image_count += 1
@@ -283,7 +285,7 @@ class FounderBookmaker:
                         try:
                             __img_file_path_list = self.__image_path.pop(0)
                             __img_file_path_list_type = type(__img_file_path_list)
-                            __img_xc_list = findall(r'(.*?)(〖XC)(.*?)〗(.*?)(?=〖XC|)', __img_read, DOTALL)
+                            __img_xc_list = _findall(r'(.*?)(〖XC)(.*?)〗(.*?)(?=〖XC|)', __img_read, _DOTALL)
                             __img_count = 0
                             for k in __img_xc_list:
                                 if __img_file_path_list_type == list:
@@ -333,9 +335,9 @@ class FounderBookmaker:
             table_bh_type_t = type(self.__table_bh_type)
             if table_bh_type_t == str:
                 try:
-                    table_src_top = search(r'(.*?)(〖BG[(（])(.*?)〗(.*)', line)
-                    table_src_bottom = search(r'(.*?)(〖BG[)）])(.*?)〗(.*)', line)
-                    tr_src = search(r'(.*?)(〖BH)(.*?)〗(.*)', line)
+                    table_src_top = _src(r'(.*?)(〖BG[(（])(.*?)〗(.*)', line)
+                    table_src_bottom = _src(r'(.*?)(〖BG[)）])(.*?)〗(.*)', line)
+                    tr_src = _src(r'(.*?)(〖BH)(.*?)〗(.*)', line)
                     if table_src_top is not None and self.__table_top != '':
                         founder_bookmaker_cursor.write(
                             f'{table_src_top.group(1)}{table_src_top.group(2)}{self.__table_top}〗{table_src_top.group(4)}\n')
@@ -369,17 +371,17 @@ class FounderBookmaker:
                         with open(file_list, 'r', encoding=self.__write_file_encode) as tbr:
                             readlines = tbr.read()
                             with open(file_list, 'w', encoding=self.__write_file_encode) as tbw:
-                                table_src = findall(r'(〖BG[（(])(.*?)〗(.*?)(〖BG[）)])(.*?)〗',
+                                table_src = _findall(r'(〖BG[（(])(.*?)〗(.*?)(〖BG[）)])(.*?)〗',
                                                     readlines,
-                                                    DOTALL)
+                                                    _DOTALL)
                                 self.__table_count = len(table_src)
                                 if table_src:
                                     bg_last = ''
                                     for i in table_src:
                                         bh_string += f"\n{i[0]}{self.__table_top}〗\n"
-                                        bh = findall(r'(.*?)(〖BH)(.*?)(〗)', i[2], S)
-                                        bg_position = search(str_rep_t(f'{i[0]}{i[1]}〗{i[2]}{i[3]}{i[4]}〗'), readlines,
-                                                             S).span()
+                                        bh = _findall(r'(.*?)(〖BH)(.*?)(〗)', i[2], _S)
+                                        bg_position = _src(str_rep_t(f'{i[0]}{i[1]}〗{i[2]}{i[3]}{i[4]}〗'), readlines,
+                                                             _S).span()
                                         for k in bh:
                                             if bh.index(k) == len(bh) - 1:
                                                 bg_last = f'{k[0]}〖BH{k[2]}〗'
@@ -390,10 +392,10 @@ class FounderBookmaker:
                                                 bh_string += f'{k[0].replace('\n', '')}\n〖BH{self.__table_bh_type[bh.index(k)]}〗'
                                             except IndexError:
                                                 bh_string += f'{k[0].replace('\n', '')}\n〖BH〗'
-                                        bg_last_group = search(rf'{bg_last}(.*?)(〖BG)(.*?)〗', f'{i[2]}{i[3]}{i[4]}〗', S)
+                                        bg_last_group = _src(rf'{bg_last}(.*?)(〖BG)(.*?)〗', f'{i[2]}{i[3]}{i[4]}〗', _S)
                                         bh_string += f"{bg_last_group.group(1).replace('\n', '')}\n{i[3]}{self.__table_bottom}〗\n"
-                                        readlines = sub(str_rep_t(readlines[bg_position[0]:bg_position[1]]), bh_string,
-                                                        readlines, S)
+                                        readlines = _sub(str_rep_t(readlines[bg_position[0]:bg_position[1]]), bh_string,
+                                                        readlines, _S)
                                         bh_string = ''
                                     tbw.write(readlines)
                                 else:
@@ -450,9 +452,9 @@ class FounderBookmaker:
 
     # 参考文献
     def __references_lr(self, line, founder_bookmaker_cursor) -> bool:
-        if match(r'^［\d+］', line) is not None:
-            wxNum = match(r'(^［\d+］)(.*)', line).group(1)
-            wxTxt = match(r'(^［\d+］)(.*)', line).group(2)
+        if _match(r'^［\d+］', line) is not None:
+            wxNum = _match(r'(^［\d+］)(.*)', line).group(1)
+            wxTxt = _match(r'(^［\d+］)(.*)', line).group(2)
             founder_bookmaker_cursor.write(
                 f'{self.__references_lr_start}{wxNum}{self.__references_lr_center}{wxTxt}{self.__references_lr_end}\n')
             return True
@@ -477,8 +479,8 @@ class FounderBookmaker:
                 with open(w_filepath, 'r', encoding=w_rencode) as rFbd:
                     rezz = r'(.*?)([^/\\]+)\.([a-zA-Z0-9]+)$'
                     if w_save_path == '':
-                        w_save_path = search(rezz, w_filepath).group(1)
-                    wfile = f'{sub(r'/$', '', w_save_path)}/{search(rezz, w_filepath).group(2)}_copy.{search(rezz, w_filepath).group(3)}'
+                        w_save_path = _src(rezz, w_filepath).group(1)
+                    wfile = f'{_sub(r'/$', '', w_save_path)}/{_src(rezz, w_filepath).group(2)}_copy.{_src(rezz, w_filepath).group(3)}'
                     try:
                         with open(wfile, 'w', encoding=w_wencode) as founder_bookmaker_cursor:
                             read_lines = rFbd.readlines()
@@ -523,11 +525,11 @@ class FounderBookmaker:
                         self.__err(f"“{w_wencode}”编解码器无法编码！在写入“{wfile}”的时候")
                         return
                     except FileNotFoundError:
-                        self.__err(f'目录“{sub(r'/$', '', w_save_path)}”不存在！写入失败')
+                        self.__err(f'目录“{_sub(r'/$', '', w_save_path)}”不存在！写入失败')
                         return
             except UnicodeDecodeError:
                 self.__err(
-                    f"“{w_rencode}”编解码器无法解码！在读取“{search(rezz, w_filepath).group(0)}”的时候(将到此直接保存)")
+                    f"“{w_rencode}”编解码器无法解码！在读取“{_src(rezz, w_filepath).group(0)}”的时候(将到此直接保存)")
                 return
             except FileNotFoundError:
                 self.__err(f'文件“{w_filepath}”不存在！写入失败')

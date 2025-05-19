@@ -1,10 +1,12 @@
 try:
-    from pymysql import Connection
+    from pymysql import Connection as _Connection
 except ModuleNotFoundError:
     print(f'\033[31m未知模块[Error]：pymysql\033[0m')
 
+
 __version__ = '1.0.0'
 __author__ = 'yzmd <a2541507030@163.com>'
+
 __all__ = ['MysqlUtil', 'version']
 
 # 版本号
@@ -56,7 +58,7 @@ class MysqlUtil:
         :param user: 用户名
         :param password: 用户密码
         """
-        self.__connect = Connection(
+        self.__connect = _Connection(
             host=host,
             port=port,
             user=user,
@@ -193,7 +195,7 @@ class MysqlUtil:
         显示帮助信息
         :param get_re: 是否获取返回值（默认否）
         """
-        __help = "\t\t:param get_re: 是否获取返回值（默认否）"
+        __help = "\t\t:param get_re: 是否开启返回值模式（默认否）"
         __connect = ("\t\t:param host: 数据库域名或IP"
                      "\n\t\t:param database_name: 数据库名"
                      "\n\t\t:param port: 端口"
@@ -220,13 +222,12 @@ class MysqlUtil:
                     "\n\t\t:param query_data: 查询键值对（如：列名或count(列名)等）"
                     "\n\t\t:param from_data: 条件键值对（如：列名=`值`）"
                     "\n\t\t:param other_data: 其他语句")
-        __grammar_prompt = ("\t\t:param re_flag: 是否开启返回值模式"
+        __grammar_prompt = ("\t\t:param re_flag: 是否开启返回值模式（默认否）"
                             "\n\t\t:return: 语法提示字典集")
         func_list = [
             ['help', '帮助', __help],
             ['connect', '连接数据库', __connect],
             ['cursor_brush', '执行 SQL 语句', __cursor_brush],
-            ['get_results', '获取 sql 语句执行结果', __get_results],
             ['get_results', '获取 sql 语句执行结果', __get_results],
             ['quit', '关闭数据库连接', '\t\t无参数'],
             ['insert', '新增数据', __insert],
